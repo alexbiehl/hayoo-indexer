@@ -51,11 +51,7 @@ parse' = go [] []
         goErr  err rest       = go insts (err:errors) rest
 
 insert :: Inst Decl -> [Inst Decl] -> [Inst Decl]
-insert decl [] = [decl]
-insert (InstDecl DeclEmpty) decls@(InstDecl DeclEmpty:_) = decls
-insert (InstComment _ (InstDecl DeclEmpty)) decls@(InstDecl DeclEmpty:_) = decls
 insert decl decls = decl:decls
-
 
 withComment :: [String] -> (Comment -> [String] -> r) -> ([String] -> r) -> r
 withComment ls k0 k1 = go0 ls
@@ -70,10 +66,11 @@ withComment ls k0 k1 = go0 ls
     go acc (l:lx) =
       case l of
        ""                   -> go id lx
-       _ | isCommentStart l -> go (acc . newline . ((List.drop 5 l) ++)) lx
-         | isComment      l -> go (acc . newline . ((List.drop 4 l) ++)) lx
+       _ | isCommentStart l -> go (acc . newline . comment) lx
+         | isComment      l -> go (acc . newline . comment) lx
          | otherwise        -> k0 (acc "") (l:lx)
       where
+        comment = (List.drop 5 l ++)
         newline = ("\n" ++)
 
     isCommentStart l = List.isPrefixOf "-- | " l

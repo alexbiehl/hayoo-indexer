@@ -43,8 +43,8 @@ parse' = go [] []
     go !insts !errors [] = (insts, errors)
     go !insts !errors ls =
       withComment ls
-      (\c r -> parseDecl r (goDecl (InstComment c)) goErr)
-      (\r   -> parseDecl r (goDecl id) goErr)
+      (\c r -> parseDecl r (goDecl (InstComment c . InstDecl)) goErr)
+      (\r   -> parseDecl r (goDecl InstDecl) goErr)
       where
         goDecl wrap decl rest = go (wrap decl:insts) errors rest
         goErr  err rest       = go insts (err:errors) rest
@@ -70,7 +70,7 @@ withComment ls k0 k1 = go0 ls
     isComment      l = List.isPrefixOf "-- " l
 
 parseDecl :: [String]
-          -> (Inst Decl -> [String] -> r)
+          -> (Decl -> [String] -> r)
           -> (Error -> [String] -> r)
           -> r
 parseDecl ls k ke = go ls
@@ -78,21 +78,20 @@ parseDecl ls k ke = go ls
     go (l:lx) =
       case l of
        "" -> go lx
-       _ | startsWith "module "    -> k (wrap (DeclModule (List.drop 7 l))) lx
-         | startsWith "type "      -> k (wrap (DeclType (List.drop 5 l))) lx
-         | startsWith "data "      -> k (wrap (DeclData False (List.drop 5 l))) lx
-         | startsWith "newtype "   -> k (wrap (DeclData True (List.drop 7 l))) lx
-         | startsWith "class "     -> k (wrap (DeclClass (List.drop 5 l))) lx
-         | startsWith "instance "  -> k (wrap (DeclInstance (List.drop 8 l))) lx
-         | startsWith "@version "  -> k (wrap (DeclVersion (List.drop 9 l))) lx
-         | startsWith "@package "  -> k (wrap (DeclPackage (List.drop 9 l))) lx
+       _ | startsWith "module "    -> k (DeclModule (List.drop 7 l)) lx
+         | startsWith "type "      -> k (DeclType (List.drop 5 l)) lx
+         | startsWith "data "      -> k (DeclData False (List.drop 5 l)) lx
+         | startsWith "newtype "   -> k (DeclData True (List.drop 7 l)) lx
+         | startsWith "class "     -> k (DeclClass (List.drop 5 l)) lx
+         | startsWith "instance "  -> k (DeclInstance (List.drop 8 l)) lx
+         | startsWith "@version "  -> k (DeclVersion (List.drop 9 l)) lx
+         | startsWith "@package "  -> k (DeclPackage (List.drop 9 l)) lx
          | otherwise               -> parseTypeSig (l:lx) k ke
       where
         startsWith p = p `List.isPrefixOf` l
-        wrap = InstDecl
 
 parseTypeSig :: [String]
-             -> (Inst Decl -> [String] -> r)
+             -> (Decl -> [String] -> r)
              -> (Error -> [String] -> r)
              -> r
 parseTypeSig (l:lx) k ke = ke "Fuck" lx

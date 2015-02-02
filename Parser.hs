@@ -5,9 +5,11 @@ module Parser where
 
 
 import System.IO
+import Data.Monoid
 import qualified Data.List as List
 
-data Decl = DeclModule !String
+data Decl = DeclEmpty
+          | DeclModule !String
           | DeclData !Bool !String
           | DeclClass !String
           | DeclInstance !String
@@ -23,7 +25,6 @@ type Comment = String
 
 data Inst a where
   InstComment :: String -> Inst a -> Inst a
-  InstEmpty   :: Inst ()
   InstDecl    :: Decl -> Inst Decl
 
 deriving instance Show (Inst a)
@@ -46,8 +47,15 @@ parse' = go [] []
       (\c r -> parseDecl r (goDecl (InstComment c . InstDecl)) goErr)
       (\r   -> parseDecl r (goDecl InstDecl) goErr)
       where
-        goDecl wrap decl rest = go (wrap decl:insts) errors rest
+        goDecl wrap decl rest = go (insert (wrap decl) insts) errors rest
         goErr  err rest       = go insts (err:errors) rest
+
+insert :: Inst Decl -> [Inst Decl] -> [Inst Decl]
+insert decl [] = [decl]
+insert (InstDecl DeclEmpty) decls@(InstDecl DeclEmpty:_) = decls
+insert (InstComment _ (InstDecl DeclEmpty)) decls@(InstDecl DeclEmpty:_) = decls
+insert decl decls = decl:decls
+
 
 withComment :: [String] -> (Comment -> [String] -> r) -> ([String] -> r) -> r
 withComment ls k0 k1 = go0 ls
@@ -62,9 +70,11 @@ withComment ls k0 k1 = go0 ls
     go acc (l:lx) =
       case l of
        ""                   -> go id lx
-       _ | isCommentStart l -> go (acc . ((List.drop 5 l) ++)) lx
-         | isComment      l -> go (acc . ((List.drop 4 l) ++)) lx
+       _ | isCommentStart l -> go (acc . newline . ((List.drop 5 l) ++)) lx
+         | isComment      l -> go (acc . newline . ((List.drop 4 l) ++)) lx
          | otherwise        -> k0 (acc "") (l:lx)
+      where
+        newline = ("\n" ++)
 
     isCommentStart l = List.isPrefixOf "-- | " l
     isComment      l = List.isPrefixOf "-- " l
@@ -77,7 +87,7 @@ parseDecl ls k ke = go ls
   where
     go (l:lx) =
       case l of
-       "" -> go lx
+       "" -> k DeclEmpty lx
        _ | startsWith "module "    -> k (DeclModule (List.drop 7 l)) lx
          | startsWith "type "      -> k (DeclType (List.drop 5 l)) lx
          | startsWith "data "      -> k (DeclData False (List.drop 5 l)) lx

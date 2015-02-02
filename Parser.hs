@@ -60,14 +60,13 @@ withComment ls k0 k1 = go0 ls
       case l of
        ""                   -> go0 lx
        _ | isCommentStart l -> go id (l:lx)
-         | isComment      l -> go id (l:lx)
+         | isComment      l -> go0 lx
          | otherwise        -> k1 (l:lx)
 
     go acc (l:lx) =
       case l of
        ""                   -> go id lx
-       _ | isCommentStart l -> go (acc . newline . comment) lx
-         | isComment      l -> go (acc . newline . comment) lx
+       _ | isComment      l -> go (acc . newline . comment) lx
          | otherwise        -> k0 (acc "") (l:lx)
       where
         comment = (List.drop 5 l ++)

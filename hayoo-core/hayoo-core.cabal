@@ -18,8 +18,8 @@ cabal-version:       >=1.10
 library
   exposed-modules:     Hayoo.Haskell
                        Hayoo.Query
-                       Hayoo.Signature
-                       
+                       Hayoo.Signature                   
+
   -- other-extensions:    
   build-depends:       base >=4.7 && <4.8
                      , containers

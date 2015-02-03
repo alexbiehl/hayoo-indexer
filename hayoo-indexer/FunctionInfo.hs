@@ -4,35 +4,68 @@ module FunctionInfo where
 import           Control.Monad
 import qualified Data.Foldable as Foldable
 import qualified Data.List as List
+import qualified Data.Map as Map
 import qualified Hayoo.Signature as Signature
+import qualified Hunt.ClientInterface as Hunt
+import           Hunt.IndexSchema
 import           Parser
+import           Data.Text (Text)
+import qualified Data.Text as Text
+import Data.Aeson (toJSON)
+
+import Hunt.Common.DocDesc
+
+
+import qualified Data.HashMap.Strict as HashMap
+
+instance Hunt.Huntable FunctionInfo where
+  huntURI      = fiURI
+  huntDescr    =
+    mkDocDesc . HashMap.map toJSON . HashMap.fromList . fiIndexMap
+  huntIndexMap = Map.fromList . fiIndexMap
+
+fiIndexMap fi =
+  [
+      c'description * fiDescription fi
+    , c'module      * fiModule fi
+    , c'name        * fiName fi
+    , c'package     * fiPackage fi
+    , c'signature   * fiSignature fi
+    , c'subsig      * fiSubsigs fi
+    , c'type        * fiType fi
+    , c'version     * fiVersion fi
+    ]
+  where
+    (*) = (,)
 
 data Ctx = CtxModule String
          | CtxClass  String
          | CtxModuleClass String String
 
 data FunctionInfo = FunctionInfo {
-    fiDescription :: !String
-  , fiModule      :: !String
-  , fiName        :: !String
-  , fiPackage     :: !String
-  , fiSignature   :: !String
-  , fiSubsigs     :: !String
-  , fiType        :: !String
-  , fiVersion     :: !String
-  , fiURI         :: !String
+    fiDescription :: !Text
+  , fiModule      :: !Text
+  , fiName        :: !Text
+  , fiPackage     :: !Text
+  , fiSignature   :: !Text
+  , fiSubsigs     :: !Text
+  , fiType        :: !Text
+  , fiVersion     :: !Text
+  , fiURI         :: !Text
   } deriving (Show)
-
 
 type Anchor = String
 
-type MkURI = PackageName -> Version -> Decl -> String
+type MkURI = PackageName -> Version -> String -> Decl -> String
+
+mkUri :: MkURI
+mkUri p v m d = p ++ v ++ m ++ show d
 
 mkEmptyUri :: MkURI
-mkEmptyUri _ _ _ = ""
+mkEmptyUri _ _ _ _ = ""
 
 functionInfo :: PackageName -> Version -> [Inst Decl] -> [FunctionInfo]
-functionInfo = concatMapDecls (toFunctionInfo mkEmptyUri)
+functionInfo = concatMapDecls (toFunctionInfo mkUri)
 
 toFunctionInfo :: MkURI
                -> Ctx
@@ -42,15 +75,15 @@ toFunctionInfo :: MkURI
                -> [FunctionInfo]
 toFunctionInfo mkUri ctx packageName version d = return
   FunctionInfo {
-      fiURI         = mkUri packageName version (decl d)
-    , fiDescription = description d
-    , fiModule      = module_ ctx
-    , fiName        = name (decl d)
-    , fiPackage     = packageName
-    , fiVersion     = version
-    , fiSignature   = signature (decl d)
-    , fiSubsigs     = List.intercalate "|" (subsignatures (signature (decl d)))
-    , fiType        = type_ ctx (decl d)
+      fiURI         = Text.pack $ mkUri packageName version (module_ ctx)  (decl d)
+    , fiDescription = Text.pack $ description d
+    , fiModule      = Text.pack $ module_ ctx
+    , fiName        = Text.pack $ name (decl d)
+    , fiPackage     = Text.pack $ packageName
+    , fiVersion     = Text.pack $ version
+    , fiSignature   = Text.pack $ signature (decl d)
+    , fiSubsigs     = Text.pack $ List.intercalate "\n" (subsignatures (signature (decl d)))
+    , fiType        = Text.pack $ type_ ctx (decl d)
     }
   where
     decl :: Inst Decl -> Decl
@@ -131,6 +164,8 @@ concatMapDecls f packageName version = go
     go1 moduleName className (d:dx) =
       case decl d of
        DeclEmpty -> go0 moduleName dx
+       DeclModule moduleName' ->
+         go0 moduleName' dx ++ f ctx packageName version d
        _         ->
          go1 moduleName className dx ++ f ctx packageName version d
       where

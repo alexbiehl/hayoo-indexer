@@ -18,9 +18,19 @@ cabal-version:       >=1.10
 executable hayoo-indexer
   main-is:             Main.hs
   -- other-modules:       
-  build-depends:       base >=4.7 && <4.8
+  build-depends:       aeson
+                     , base >=4.7 && <4.8
+                     , containers
                      , haskell-src-exts
                      , hayoo-core
+                     , hunt-client
+                     , hunt-client
+                     , hunt-searchengine
+                     , old-locale
+                     , text
+                     , time
+                     , transformers
+                     , unordered-containers
   -- hs-source-dirs:    
 
   default-language:    Haskell2010

@@ -1,6 +1,7 @@
 module Hayoo.Signature(
     Signature
   , parse
+  , parseNormalized
   , pretty
   , normalize
   , explode

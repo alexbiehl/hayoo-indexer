@@ -5,6 +5,7 @@ import qualified Hayoo.Signature as Signature
 import           Control.Monad
 import qualified Data.List as List
 import qualified Data.Set as Set
+import qualified Data.Foldable as Foldable
 import qualified Hunt.Query.Language.Builder as Hunt
 import qualified Hunt.Query.Language.Grammar as Hunt
 import qualified Hunt.Query.Language.Parser as Hunt
@@ -23,25 +24,14 @@ parse s = Hunt.qOrs (List.concat queries)
         else mzero
       ]
 
-    queries = [
-        parseHuntQuery s
-      , parseSignatureQuery s
-      , parseDefaultQuery s
-      ]
-
 parseHuntQuery :: String -> [Hunt.Query]
-parseHuntQuery s =
-  case Hunt.parseQuery s of
-   Left _  -> mzero
-   Right q -> return q
+parseHuntQuery = Foldable.toList . Hunt.parseQuery
 
 parseSignatureQuery :: String -> [Hunt.Query]
 parseSignatureQuery s =
   Hunt.qOrs (List.concat [sigQuery, subSigQuery])
   where
-    sig = case Signature.parseNormalized s of
-      Left _  -> mzero
-      Right a -> return a
+    sig = Foldable.toList (Signature.parseNormalized s)
 
     subSigs = List.concatMap (
       Set.toList

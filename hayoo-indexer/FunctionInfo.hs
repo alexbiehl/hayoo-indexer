@@ -1,7 +1,11 @@
 {-# LANGUAGE GADTs #-}
 module FunctionInfo where
 
-import Parser
+import           Control.Monad
+import qualified Data.Foldable as Foldable
+import qualified Data.List as List
+import qualified Hayoo.Signature as Signature
+import           Parser
 
 data Ctx = CtxModule String
          | CtxClass  String
@@ -44,9 +48,9 @@ toFunctionInfo mkUri ctx packageName version d = return
     , fiName        = name (decl d)
     , fiPackage     = packageName
     , fiVersion     = version
-    , fiSignature   = ""
-    , fiSubsigs     = ""
-    , fiType        = type_ ctx d
+    , fiSignature   = signature (decl d)
+    , fiSubsigs     = List.intercalate "|" (subsignatures (signature (decl d)))
+    , fiType        = type_ ctx (decl d)
     }
   where
     decl :: Inst Decl -> Decl
@@ -64,11 +68,35 @@ toFunctionInfo mkUri ctx packageName version d = return
     name (DeclModule moduleName) = moduleName
     name (DeclData _ dataName)   = dataName
     name (DeclClass className)   = className
-    name (DeclType typeName )    = typeName
+    name (DeclType typeName _)   = typeName
+    name (DeclTypeSig sigName _) = sigName
     name _                       = "unknown name"
 
-    type_ ctx _ = "unknown"
+    signature (DeclTypeSig _ sig) = sig
+    signature (DeclType _ sig)    = sig
+    signature _                   = ""
 
+    subSignatures (DeclTypeSig _ sig) = sig
+    subSignatures _                   = ""
+
+    type_ (CtxClass _) (DeclTypeSig _ _) = "method"
+    type_ _   (DeclTypeSig _ _)          = "function"
+    type_ _   (DeclType _ _)             = "type"
+    type_ _   (DeclData False _)         = "data"
+    type_ _   (DeclData True  _)         = "newtype"
+    type_ _   (DeclModule _)             = "module"
+    type_ _   (DeclClass _)              = "class"
+    type_ _   _                          = "unknown"
+
+subsignatures :: String -> [String]
+subsignatures s =
+  case Signature.parse s of
+   Left _    -> mzero
+   Right sig ->
+     fmap Signature.pretty (
+       Foldable.toList (
+          Signature.explodeNormalized sig
+          ))
 
 concatMapDecls :: (Ctx -> PackageName -> Version -> Inst Decl -> [FunctionInfo])
                -> PackageName

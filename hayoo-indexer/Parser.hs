@@ -16,6 +16,9 @@ module Parser(
 import System.IO
 import qualified Data.List as List
 
+import qualified Hayoo.Haskell as Haskell
+import qualified Language.Haskell.Exts.Syntax as Haskell
+
 type Version = String
 
 type PackageName = String
@@ -27,7 +30,8 @@ data Decl = DeclEmpty
           | DeclData !Bool !String
           | DeclClass !String
           | DeclInstance !String
-          | DeclType !String
+          | DeclType !String !String
+          | DeclTypeSig !String !String
           | DeclVersion !String
           | DeclPackage !String
           | DeclUnknown !String
@@ -119,19 +123,33 @@ parseDecl ls k ke = go ls
       case l of
        "" -> k DeclEmpty lx
        _ | startsWith "module "    -> k (DeclModule (List.drop 7 l)) lx
-         | startsWith "type "      -> k (DeclType (List.drop 5 l)) lx
-         | startsWith "data "      -> k (DeclData False (List.drop 5 l)) lx
-         | startsWith "newtype "   -> k (DeclData True (List.drop 7 l)) lx
-         | startsWith "class "     -> k (DeclClass (List.drop 5 l)) lx
+         | startsWith "class "     -> k (DeclClass (extractClassName (List.drop 6 l))) lx
          | startsWith "instance "  -> k (DeclInstance (List.drop 8 l)) lx
          | startsWith "@version "  -> k (DeclVersion (List.drop 9 l)) lx
          | startsWith "@package "  -> k (DeclPackage (List.drop 9 l)) lx
-         | otherwise               -> parseTypeSig (l:lx) k ke
+         | otherwise               -> parseHaskellDecl (l:lx) k ke
       where
+        extractClassName = head . words
+
         startsWith p = p `List.isPrefixOf` l
 
-parseTypeSig :: [String]
-             -> (Decl -> [String] -> r)
-             -> (Error -> [String] -> r)
-             -> r
-parseTypeSig (l:lx) k ke = ke "Fuck" lx
+parseHaskellDecl :: [String]
+                 -> (Decl -> [String] -> r)
+                 -> (Error -> [String] -> r)
+                 -> r
+parseHaskellDecl (l:lx) ok failure =
+  case Haskell.parse l >>= mkDecl of
+   Left err -> failure err lx
+   Right d  -> ok d lx
+
+mkDecl :: Haskell.Decl -> Either String Decl
+mkDecl d =
+  case d of
+   Haskell.TypeDecl _ name _ t                 ->
+     return (DeclType (Haskell.pretty name) (Haskell.pretty t))
+   Haskell.DataDecl _ dataOrNew ctx name _ _ _ ->
+     return (DeclData (dataOrNew == Haskell.NewType) (Haskell.pretty name))
+   Haskell.TypeSig  _ [name] t                 ->
+     return (DeclTypeSig (Haskell.pretty name) (Haskell.pretty t))
+   x                                           ->
+     Left ("Unsupported decl: " ++ show d)

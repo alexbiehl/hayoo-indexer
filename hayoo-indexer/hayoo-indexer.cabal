@@ -18,7 +18,9 @@ cabal-version:       >=1.10
 executable hayoo-indexer
   main-is:             Main.hs
   -- other-modules:       
-  other-extensions:    GADTs, StandaloneDeriving, BangPatterns
   build-depends:       base >=4.7 && <4.8
-  -- hs-source-dirs:      
+                     , haskell-src-exts
+                     , hayoo-core
+  -- hs-source-dirs:    
+
   default-language:    Haskell2010

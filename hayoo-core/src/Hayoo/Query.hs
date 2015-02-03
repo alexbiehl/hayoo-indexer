@@ -4,7 +4,6 @@ import qualified Hayoo.Signature as Signature
 
 import           Control.Monad
 import qualified Data.List as List
-import qualified Data.Set as Set
 import qualified Data.Foldable as Foldable
 import qualified Hunt.Query.Language.Builder as Hunt
 import qualified Hunt.Query.Language.Grammar as Hunt
@@ -34,7 +33,7 @@ parseSignatureQuery s =
     sig = Foldable.toList (Signature.parseNormalized s)
 
     subSigs = List.concatMap (
-      Set.toList
+      Foldable.toList
       . Signature.explodeNormalized
       ) sig
 

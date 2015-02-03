@@ -71,8 +71,8 @@ normalize' type_ =
        TyBang bangType t      -> TyBang bangType <$> go t
        x                      -> return x
 
-    goVarbinds (Just varbinds)  = Just <$> forM varbinds goVarbind
-    goVarbinds Nothing          = return Nothing
+    goVarbinds (Just varbinds) = Just <$> forM varbinds goVarbind
+    goVarbinds Nothing         = return Nothing
 
     goVarbind (KindedVar n kind) = KindedVar <$> name n <*> pure kind
     goVarbind (UnkindedVar n)    = UnkindedVar <$> name n
@@ -114,6 +114,9 @@ explodeNormalized' = Set.map normalize' . explode'
 
 parse :: String -> Either String Signature
 parse s = Signature <$> Haskell.parse s
+
+parseNormalized :: String -> Either String Signature
+parseNormalized s = normalize <$> parse s
 
 pretty :: Signature -> String
 pretty = Haskell.pretty . unSignature

@@ -2,17 +2,13 @@
 {-# LANGUAGE BangPatterns      #-}
 module Main where
 
-import FunctionInfo
-import Parser
-
 import Control.Monad
-
-import Hunt.IndexSchema
-
+import Control.Monad.IO.Class
+import Hayoo.Index.FunctionInfo
+import Hayoo.Index.IndexSchema
+import Hayoo.Index.Parser
 import Hunt.ClientInterface
 import Hunt.Server.Client
-
-import Control.Monad.IO.Class
 
 main :: IO ()
 main = do

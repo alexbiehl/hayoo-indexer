@@ -13,8 +13,8 @@ import qualified Data.Text as Text
 import qualified Hayoo.Signature as Signature
 import qualified Hunt.ClientInterface as Hunt
 import qualified Hunt.Common.DocDesc as Hunt
-import           Hunt.IndexSchema
-import           Parser
+import           Hayoo.Index.IndexSchema
+import           Hayoo.Index.Parser
 
 instance Hunt.Huntable FunctionInfo where
   huntURI      = fiURI
@@ -43,7 +43,7 @@ data FunctionInfo = FunctionInfo {
 type MkURI = PackageName -> Version -> String -> Decl -> String
 
 toList :: FunctionInfo -> [(Text, Text)]
-toList = fmap (second Text.pack) [
+toList fi = fmap (second id) [
     c'description * fiDescription fi
   , c'module      * fiModule fi
   , c'name        * fiName fi
@@ -73,7 +73,7 @@ toFunctionInfo :: MkURI
                -> [FunctionInfo]
 toFunctionInfo mkUri ctx packageName version d =
   return FunctionInfo {
-      fiURI         = Text.pack $ mkUri packageName version (module_ ctx)
+      fiURI         = Text.pack $ mkUri packageName version (module_ ctx) decl
     , fiDescription = Text.pack $ description d
     , fiModule      = Text.pack $ module_ ctx
     , fiName        = Text.pack $ name decl
@@ -85,7 +85,7 @@ toFunctionInfo mkUri ctx packageName version d =
     }
   where
     toDecl :: Inst Decl -> Decl
-    toDecl (InstComment _ x) = decl x
+    toDecl (InstComment _ x) = toDecl x
     toDecl (InstDecl x)      = x
 
     decl = toDecl d
@@ -123,8 +123,8 @@ toFunctionInfo mkUri ctx packageName version d =
     type_ _   _                                  = "unknown"
 
 mkSubsignatures :: String -> [String]
-mkSubsignatures s =
-  signature    <- either mzero return (Signature.parse s)
+mkSubsignatures s = do
+  signature    <- either (const mzero) return (Signature.parse s)
   subsignature <- Foldable.toList (Signature.explode signature)
   return (Signature.pretty subsignature)
 

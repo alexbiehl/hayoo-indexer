@@ -13,11 +13,10 @@ module Parser(
   , parse
   ) where
 
-import System.IO
 import qualified Data.List as List
-
 import qualified Hayoo.Haskell as Haskell
 import qualified Language.Haskell.Exts.Syntax as Haskell
+import System.IO
 
 type Version = String
 
@@ -57,10 +56,10 @@ parse :: String -> (PackageName, Version, Synopsis, [Inst Decl], [Error])
 parse = parse' . List.lines
 
 parse' :: [String] -> (PackageName, Version, Synopsis, [Inst Decl], [Error])
-parse' = go "" "" "" [] []
+parse' = go "" "" "" id id
   where
     go !syn !pname !ver !insts !errors [] =
-      (pname, ver, syn, insts, errors)
+      (pname, ver, syn, insts [], errors [])
     go !syn !pname !ver !insts !errors ls =
       withComment ls
       (\c r -> parseDecl r (goDecl (InstComment c . InstDecl)) goErr)
@@ -71,11 +70,11 @@ parse' = go "" "" "" [] []
           (synopsis syn  (wrap decl))
           (package pname (wrap decl))
           (version ver   (wrap decl))
-          ((wrap decl):insts)
+          (insts . ([wrap decl] ++))
           errors
           rest
         goErr  err rest       =
-          go syn pname ver insts (err:errors) rest
+          go syn pname ver insts (errors . ([err] ++)) rest
 
 synopsis :: Synopsis -> Inst Decl -> Synopsis
 synopsis _   (InstComment syn (InstDecl (DeclPackage _))) = syn
@@ -96,7 +95,7 @@ withComment ls k0 k1 = go0 ls
   where
     go0 (l:lx) =
       case l of
-       ""                   -> go0 lx
+       ""                   -> k1 (l:lx)
        _ | isCommentStart l -> go id (l:lx)
          | isComment      l -> go0 lx
          | otherwise        -> k1 (l:lx)

@@ -22,8 +22,7 @@ executable hayoo-indexer
                      , base >=4.7 && <4.8
                      , containers
                      , haskell-src-exts
-                     , hayoo-core
-                     , hunt-client
+                     , hayoo-core                     
                      , hunt-client
                      , hunt-searchengine
                      , old-locale
@@ -31,6 +30,5 @@ executable hayoo-indexer
                      , time
                      , transformers
                      , unordered-containers
-  -- hs-source-dirs:    
-
+  hs-source-dirs:      src   
   default-language:    Haskell2010

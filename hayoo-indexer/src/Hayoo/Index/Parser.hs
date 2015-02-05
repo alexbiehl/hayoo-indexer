@@ -1,7 +1,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE BangPatterns #-}
-module Parser(
+module Hayoo.Index.Parser(
     Version
   , PackageName
   , Error

@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Hunt.IndexSchema
+module Hayoo.Index.IndexSchema
 where
 
 import Control.Applicative ()

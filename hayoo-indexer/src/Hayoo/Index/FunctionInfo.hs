@@ -1,5 +1,5 @@
 {-# LANGUAGE GADTs #-}
-module FunctionInfo where
+module Hayoo.Index.FunctionInfo where
 
 import           Control.Arrow (second)
 import           Control.Monad

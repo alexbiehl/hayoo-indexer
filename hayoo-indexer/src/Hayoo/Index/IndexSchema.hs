@@ -3,11 +3,8 @@ module Hayoo.Index.IndexSchema
 where
 
 import Control.Applicative ()
-import Control.Monad.IO.Class (MonadIO)
-
 import Data.Text (Text, pack, unpack)
 import Data.Time (UTCTime, formatTime, parseTime)
-
 import Hunt.ClientInterface
 import System.Locale (defaultTimeLocale)
 

@@ -1,8 +1,9 @@
 module Hayoo.Haskell where
 
-import Language.Haskell.Exts.Pretty
-import Language.Haskell.Exts.Parser
-import Language.Haskell.Exts.Extension
+import           Language.Haskell.Exts.Extension
+import qualified Language.Haskell.Exts.Parser as Parser
+import           Language.Haskell.Exts.Pretty
+import           Language.Haskell.Exts.Comments
 
 pphsMode :: PPHsMode
 pphsMode = PPHsMode {
@@ -21,10 +22,10 @@ pphsMode = PPHsMode {
 pretty :: Pretty a => a -> String
 pretty = prettyPrintWithMode pphsMode
 
-parseMode :: ParseMode
+parseMode :: Parser.ParseMode
 parseMode =
-  defaultParseMode {
-    extensions = parseModeExtensions
+  Parser.defaultParseMode {
+    Parser.extensions = parseModeExtensions
     }
 
 parseModeExtensions :: [Extension]
@@ -49,8 +50,14 @@ parseModeExtensions =
     , PolyKinds
     ]
 
-parse :: Parseable a => String -> Either String a
+parse :: Parser.Parseable a => String -> Either String a
 parse s =
-  case parseWithMode parseMode s of
-   ParseOk a         -> return a
-   ParseFailed _ err -> Left err
+  case Parser.parseWithMode parseMode s of
+   Parser.ParseOk a         -> return a
+   Parser.ParseFailed _ err -> Left err
+
+parseWithComments :: Parser.Parseable a => String -> Either String (a, [Comment])
+parseWithComments s =
+  case Parser.parseWithComments parseMode s of
+   Parser.ParseOk a -> return a
+   Parser.ParseFailed _ err -> Left err

@@ -6,33 +6,45 @@ import qualified Hayoo.Signature as Signature
 import           Control.Monad
 import qualified Data.Foldable as Foldable
 import qualified Data.List as List
+import           Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Hunt.Query.Language.Builder as Hunt
 import qualified Hunt.Query.Language.Grammar as Hunt
 import qualified Hunt.Query.Language.Parser as Hunt
 
-parse :: String -> Hunt.Query
+parse :: Text -> Hunt.Query
 parse s = Hunt.qOrs (List.concat queries)
   where
-    huntQuery      = parseHuntQuery s
-    signatureQuery = parseSignatureQuery s
+    unquoted       = removeQuotes s
+
+    huntQuery      = parseHuntQuery unquoted
+    signatureQuery = parseSignatureQuery unquoted
 
     queries = [
         huntQuery
       , signatureQuery
-      , if List.null huntQuery && List.null signatureQuery
-        then parseDefaultQuery s
-        else mzero
+      , parseDefaultQuery s
       ]
 
-parseHuntQuery :: String -> [Hunt.Query]
-parseHuntQuery = Foldable.toList . Hunt.parseQuery
+parseHuntQuery :: Text -> [Hunt.Query]
+parseHuntQuery = Foldable.toList . Hunt.parseQuery . Text.unpack
 
-parseSignatureQuery :: String -> [Hunt.Query]
+parseSignatureQuery :: Text -> [Hunt.Query]
 parseSignatureQuery s =
-  [ Hunt.qOrs (List.concat [sigQuery, subSigQuery]) ]
+  if List.null queries
+     then []
+     else [ Hunt.qOrs queries ]
   where
-    sig = Foldable.toList (Signature.parseNormalized s)
+    queries = List.concat [sigQuery, subSigQuery]
+
+    parseSignature s | Text.isInfixOf "->" s =
+                         Signature.parseNormalized (Text.unpack s)
+                     | Text.isInfixOf "=>" s =
+                         Signature.parseNormalized (Text.unpack s)
+                     | otherwise            =
+                         Left ""
+
+    sig = Foldable.toList (parseSignature s)
 
     subSigs = List.concatMap (
       Foldable.toList
@@ -49,7 +61,6 @@ parseSignatureQuery s =
                        . Signature.pretty
                   ) subSigs)
 
-
     sigQuery = fmap (
       Hunt.setContexts ["signature"]
       . Hunt.qWord
@@ -60,6 +71,17 @@ parseSignatureQuery s =
 pack :: String -> Text.Text
 pack = Text.pack
 
-parseDefaultQuery :: String -> [Hunt.Query]
+parseDefaultQuery :: Text -> [Hunt.Query]
 parseDefaultQuery =
-  return . Hunt.qAnds . fmap Hunt.qWordNoCase . fmap Text.pack  . List.words
+  return . Hunt.qAnds . fmap Hunt.qWordNoCase . fmap removeQuotes . Text.words
+
+removeQuotes :: Text -> Text
+removeQuotes t
+  | Text.null t        = t
+  | Text.head t == '"'
+    &&
+    Text.last t == '"' = Text.dropAround (== '"') t
+  | Text.head t == '\''
+    &&
+    Text.last t == '\'' = Text.dropAround (== '\'') t
+  | otherwise           = t

@@ -6,6 +6,7 @@ module Hayoo.Signature(
   , normalize
   , explode
   , explodeNormalized
+  , fromType
   ) where
 
 import qualified Hayoo.Haskell as Haskell
@@ -69,7 +70,7 @@ normalize' type_ =
                                   <*> go t2
        TyKind t kind          -> TyKind <$> go t <*> pure kind
        TyEquals t1 t2         -> TyEquals <$> go t1 <*> go t2
-       TyBang bangType t      -> TyBang bangType <$> go t
+       TyBang _ t             -> go t
        x                      -> return x
 
     goVarbinds (Just varbinds) = Just <$> forM varbinds goVarbind
@@ -121,3 +122,6 @@ parseNormalized s = normalize <$> parse s
 
 pretty :: Signature -> String
 pretty = Haskell.pretty . unSignature
+
+fromType :: Type -> Signature
+fromType = Signature

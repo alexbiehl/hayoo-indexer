@@ -20,15 +20,26 @@ executable hayoo-indexer
   -- other-modules:       
   build-depends:       aeson
                      , base >=4.7 && <4.8
+                     , bytestring
                      , containers
+                     , filepath
                      , haskell-src-exts
-                     , hayoo-core                     
+                     , hayoo-core
                      , hunt-client
                      , hunt-searchengine
                      , old-locale
+                     , split
+                     , tar
                      , text
                      , time
                      , transformers
                      , unordered-containers
+                     , utf8-string
+                     , zlib
   hs-source-dirs:      src   
   default-language:    Haskell2010
+
+  ghc-options:         -Wall
+                       -funbox-strict-fields
+                       -O2
+                       -threaded

@@ -14,6 +14,7 @@ module Hayoo.Index.Hoogle (
   )
        where
 
+import           Control.Applicative
 import           Data.Char
 import           Data.Either (lefts, rights)
 import qualified Data.List as List
@@ -50,12 +51,21 @@ splitModules = split (keepDelimsL (whenElt (List.isPrefixOf "module ")))
 fixup :: [String] -> [[String]]
 fixup = splitModules
         . List.filter (not . List.isPrefixOf "@")
+        . fmap fixupTypeSig
         . fmap fixupModule
         . fmap fixupNewtype
         . fmap fixupDataDecl
         . fmap fixupInstance
         . fmap fixupComment
+        . fmap fixupClass
+        . fmap fixupErrors
   where
+    fixupClass s | List.isPrefixOf "class " s =
+                     let
+                       (prefix, _) = List.break ("where" ==) (words s)
+                     in (unwords prefix) ++ " where x :: String"
+                 | otherwise                  = s
+
     fixupComment s | List.isPrefixOf "-- | " s = "--  " ++ List.drop 4 s
                    | otherwise                 = s
 
@@ -71,6 +81,15 @@ fixup = splitModules
     fixupDataDecl []                 = []
     fixupDataDecl (c:cx) | isUpper c = "data XX_Data where " ++ (c:cx)
                          | otherwise = (c:cx)
+
+    fixupTypeSig s | List.isPrefixOf "(" s = ""
+                   | otherwise             = s
+
+
+    fixupErrors s | List.or (List.isPrefixOf <$> excludes <*> pure s) = ""
+                  | otherwise                                        = s
+      where
+        excludes = ["c_foldEntries"]
 
 mergeComments :: [Comment] -> [Comment]
 mergeComments []         = []
@@ -122,6 +141,7 @@ declSignature (IDecl decl) =
    TypeDecl _ _ _ t                           -> return (fromType t)
    GDataDecl _ _ _ _ _ _ [GadtDecl _ _ _ t] _ -> return (fromType t)
    TypeSig _ _ t                              -> return (fromType t)
+
    _                                          -> Nothing
 
 declName :: Inst Decl -> String
@@ -133,8 +153,8 @@ declName (IDecl decl) =
    TypeDecl _ name _ _                                    -> Haskell.pretty name
    GDataDecl _ _ _ (Ident "XX_Data") _ _ [GadtDecl _ name _ _] _ -> Haskell.pretty name
    GDataDecl _ _ _ name _ _ _ _                           -> Haskell.pretty name
-   DataDecl _ _ _ name _ _ _                              -> Haskell.pretty name
-   ClassDecl _ _ name _ _ _                               -> Haskell.pretty name
+   DataDecl _ _ _ name binds _ _                          -> Haskell.pretty name
+   ClassDecl _ _ name binds _ _                           -> Haskell.pretty name
    _                                                      -> ""
 
 declModule :: Inst Decl -> String

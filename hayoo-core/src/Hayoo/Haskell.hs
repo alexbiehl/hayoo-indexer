@@ -60,4 +60,4 @@ parseWithComments :: Parser.Parseable a => String -> Either String (a, [Comment]
 parseWithComments s =
   case Parser.parseWithComments parseMode s of
    Parser.ParseOk a -> return a
-   Parser.ParseFailed _ err -> Left err
+   Parser.ParseFailed srcLoc err -> Left (err ++ " (" ++ show srcLoc ++ ")")

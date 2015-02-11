@@ -3,13 +3,9 @@
 module Main where
 
 import Control.Monad.IO.Class
-import Hayoo.Index.Conduit
-import Hayoo.Index.FunctionInfo
 import Hayoo.Index.Hoogle
 import Hayoo.Index.IndexSchema
 import Hunt.Server.Client
-
-class X a where x :: a
 
 haddockUri :: String -> MkURI (Inst Decl)
 haddockUri base package version module_ decl anchor =

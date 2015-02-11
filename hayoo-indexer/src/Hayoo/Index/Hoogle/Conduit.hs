@@ -3,7 +3,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE UndecidableInstances #-}
-module Hayoo.Index.Conduit where
+module Hayoo.Index.Hoogle.Conduit where
 
 import qualified Codec.Archive.Tar as Tar
 import qualified Codec.Compression.GZip as GZip
@@ -15,8 +15,8 @@ import qualified Data.List as List
 import qualified Data.String.UTF8 as UTF8
 import           Data.Vector (Vector)
 import qualified Data.Vector as Vector
-import           Hayoo.Index.FunctionInfo
-import           Hayoo.Index.Hoogle
+import           Hayoo.Index.Hoogle.FunctionInfo
+import           Hayoo.Index.Hoogle.Parser
 import           Hunt.ClientInterface
 import           Hunt.Server.Client
 import           System.FilePath

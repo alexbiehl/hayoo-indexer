@@ -1,6 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Hayoo.Index.IndexSchema
-where
+module Hayoo.Index.IndexSchema where
 
 import Control.Applicative ()
 import Data.Text (Text, pack, unpack)

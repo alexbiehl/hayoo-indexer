@@ -1,5 +1,5 @@
 {-# LANGUAGE GADTs #-}
-module Hayoo.Index.FunctionInfo where
+module Hayoo.Index.Hoogle.FunctionInfo where
 
 import           Control.Monad
 import           Data.Aeson (toJSON)
@@ -13,7 +13,7 @@ import qualified Hayoo.Signature as Signature
 import qualified Hunt.ClientInterface as Hunt
 import qualified Hunt.Common.DocDesc as Hunt
 import           Hayoo.Index.IndexSchema
-import           Hayoo.Index.Hoogle
+import           Hayoo.Index.Hoogle.Parser
 
 type PackageName = String
 type Version = String

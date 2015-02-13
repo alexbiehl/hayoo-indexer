@@ -1,31 +1,29 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE BangPatterns      #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module Main where
 
-import Control.Monad.IO.Class
 import Hayoo.Index.Hoogle
+import Hayoo.Index.PackageInfo
+
 import Hayoo.Index.IndexSchema
 import Hunt.Server.Client
-
-haddockUri :: String -> MkURI (Inst Decl)
-haddockUri base package version module_ decl anchor =
-  base ++ "/package/" ++ package ++ "-"
-   ++ version ++ "/docs/" ++ module' ++ ".html" ++ "#" ++ escape (anchor decl)
-  where
-    escape = concatMap (\c -> case c of
-                               '\'' -> "-39-"
-                               _    -> return c)
-
-    module' = fmap (\c -> case c of
-                           '.' -> '-'
-                           _   -> c) module_
+import Control.Concurrent.Async
 
 main :: IO ()
 main = do
-  withHuntServer "http://localhost:3000" $ do
-    r0 <- postCommand dropHayooIndexSchema
-    liftIO $ putStrLn (show (r0 :: String))
-    r1 <- postCommand createHayooIndexSchema
-    liftIO $ putStrLn (show (r1 :: String))
 
-    indexHoogleArchive (haddockUri "http://hackage.haskell.org") "hoogle.tar.gz"
+  sam <- newServerAndManager "http://localhost:3000"
+
+  let runHunt = withServerAndManager sam
+
+  let processHoogleArchive =
+        indexHoogleArchive (mkHaddockUri "http://hackage.haskell.org") "hoogle.tar.gz"
+
+  runHunt $ do
+    _ :: String <- postCommand dropHayooIndexSchema
+    _ :: String <- postCommand createHayooIndexSchema
+    return ()
+
+  _ <- concurrently (return ()) (runHunt processHoogleArchive)
+  return ()

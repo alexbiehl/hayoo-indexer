@@ -52,6 +52,7 @@ fixup :: [String] -> [[String]]
 fixup = splitModules
         . List.filter (not . List.isPrefixOf "@")
         . fmap fixupTypeSig
+        . fmap fixupType
         . fmap fixupModule
         . fmap fixupNewtype
         . fmap fixupDataDecl
@@ -78,13 +79,15 @@ fixup = splitModules
     fixupInstance s | List.isPrefixOf "instance " s = ""
                     | otherwise                     = s
 
+    fixupType s | List.isPrefixOf "type " s && List.isInfixOf "::" s = ""
+                | otherwise                                          = s
+
     fixupDataDecl []                 = []
     fixupDataDecl (c:cx) | isUpper c = "data XX_Data where " ++ (c:cx)
                          | otherwise = (c:cx)
 
     fixupTypeSig s | List.isPrefixOf "(" s = ""
                    | otherwise             = s
-
 
     fixupErrors s | List.or (List.isPrefixOf <$> excludes <*> pure s) = ""
                   | otherwise                                        = s

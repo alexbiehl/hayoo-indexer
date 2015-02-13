@@ -13,18 +13,14 @@ import qualified Data.ByteString.Lazy as ByteString
 import           Data.Function (on)
 import qualified Data.List as List
 import qualified Data.String.UTF8 as UTF8
-import           Data.Vector (Vector)
-import qualified Data.Vector as Vector
 import           Hayoo.Index.Hoogle.FunctionInfo
 import           Hayoo.Index.Hoogle.Parser
 import           Hunt.ClientInterface
+import           Hunt.Conduit
 import           Hunt.Server.Client
 import           System.FilePath
 
 type Error = String
-
-instance (MonadBase b m) => MonadBase b (HuntConnectionT m) where
-  liftBase = lift . liftBase
 
 indexHoogleArchive :: MkURI (Inst Decl)
                    -> FilePath
@@ -34,8 +30,9 @@ indexHoogleArchive mkUri fp = do
   sourceArchive (GZip.decompress archive)
     =$= functionInfos mkUri -- | Parse hoogle databases
     =$= tracer              -- | Print errors
-    =$= conduitVector 100   -- | Buffer function infos
-    $$ sinkApidoc           -- | Post commands as sequence to hunt
+    =$= makeInserts toApiDocument
+    =$= rechunkCommands 100
+    $$ cmdSink
 
 sourceArchive :: Monad m
               => ByteString
@@ -66,20 +63,8 @@ functionInfos mkUri = awaitForever $ \(fp, content) -> do
     utf8 :: ByteString -> String
     utf8 = UTF8.toString . UTF8.fromRep
 
-tracer :: (MonadIO m) => ConduitM (Either Error FunctionInfo) FunctionInfo m ()
+tracer :: (MonadIO m) => ConduitM (Either Error a) a m ()
 tracer = awaitForever $ \a -> do
   case a of
     Left err -> liftIO $ putStrLn err
     Right x  -> yield x
-
-sinkApidoc :: (Huntable a, MonadIO m, MonadThrow m)
-           => Consumer (Vector a) (HuntConnectionT m) ()
-sinkApidoc = awaitForever $ \a -> do
-  _ :: String <- lift $ post a
-  return ()
-  where
-    post = postCommand
-           . cmdSequence
-           . fmap cmdInsertDoc
-           . fmap toApiDocument
-           . Vector.toList

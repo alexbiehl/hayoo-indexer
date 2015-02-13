@@ -18,7 +18,9 @@ cabal-version:       >=1.10
 executable hayoo-indexer
   main-is:             Main.hs
   -- other-modules:
-  build-depends:       aeson
+  build-depends:       Cabal
+                     , aeson
+                     , async
                      , base >=4.7 && <4.8
                      , bytestring
                      , conduit

@@ -1,4 +1,4 @@
-module Hayoo.Index.PackageInfo where
+module Hayoo.Index.Cabal.PackageInfo where
 
 import           Data.Aeson (toJSON)
 import qualified Data.HashMap.Strict as HashMap
@@ -51,7 +51,6 @@ toList pd = filter (not . Text.null . snd) [
   , (d'category, pdCategory pd)
   , (d'dependencies, pdDependencies pd)
   , (d'description, pdDescription pd)
-  , (d'homepage, pdHomepage pd)
   , (d'maintainer, pdMaintainer pd)
   , (d'name, pIdName (pdId pd))
   , (d'version, pIdVersion (pdId pd))

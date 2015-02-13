@@ -4,7 +4,7 @@
 module Main where
 
 import Hayoo.Index.Hoogle
-import Hayoo.Index.PackageInfo
+import Hayoo.Index.Cabal
 
 import Hayoo.Index.IndexSchema
 import Hunt.Server.Client
@@ -20,10 +20,15 @@ main = do
   let processHoogleArchive =
         indexHoogleArchive (mkHaddockUri "http://hackage.haskell.org") "hoogle.tar.gz"
 
+  let processCabalArchive =
+        indexCabalArchive "index.tar.gz"
+
   runHunt $ do
     _ :: String <- postCommand dropHayooIndexSchema
     _ :: String <- postCommand createHayooIndexSchema
     return ()
 
-  _ <- concurrently (return ()) (runHunt processHoogleArchive)
+  _ <- concurrently
+       (runHunt processCabalArchive)
+       (runHunt processHoogleArchive)
   return ()

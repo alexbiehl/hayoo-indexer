@@ -21,7 +21,7 @@ main = do
         indexHoogleArchive (mkHaddockUri "http://hackage.haskell.org") "hoogle.tar.gz"
 
   let processCabalArchive =
-        indexCabalArchive "index.tar.gz"
+        indexCabalArchive (mkHackageUri "http://hackage.haskell.org") "index.tar.gz"
 
   runHunt $ do
     _ :: String <- postCommand dropHayooIndexSchema

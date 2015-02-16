@@ -13,7 +13,7 @@ import qualified Hayoo.Signature as Signature
 import qualified Hunt.ClientInterface as Hunt
 import qualified Hunt.Common.DocDesc as Hunt
 import           Hayoo.Index.IndexSchema
-import           Hayoo.Index.Hoogle.Parser
+import           Hayoo.Index.Hoogle.Parser1
 
 type PackageName = String
 type Version = String
@@ -56,29 +56,29 @@ toList fi = filter (not . Text.null . snd) [
   where
     (*) = (,)
 
-functionInfo :: MkURI (Inst Decl) -> PackageName -> Version -> [Inst Decl] -> [FunctionInfo]
+functionInfo :: MkURI (Inst Fact) -> PackageName -> Version -> [Inst Fact] -> [FunctionInfo]
 functionInfo mkUri package version = concatMap (toFunctionInfo mkUri package version)
 
-toFunctionInfo :: MkURI (Inst Decl)
+toFunctionInfo :: MkURI (Inst Fact)
                -> PackageName
                -> Version
-               -> Inst Decl
+               -> Inst Fact
                -> [FunctionInfo]
 toFunctionInfo mkUri packageName version d =
   return FunctionInfo {
-      fiURI         = Text.pack $ mkUri packageName version (declModule d) d haddockAnchor
-    , fiDescription = Text.pack $ declDescription d
-    , fiModule      = Text.pack $ declModule d
-    , fiName        = Text.pack $ declName d
+      fiURI         = Text.pack $ mkUri packageName version (factModule d) d haddockAnchor
+    , fiDescription = Text.pack $ factDescription d
+    , fiModule      = Text.pack $ factModule d
+    , fiName        = Text.pack $ factName d
     , fiPackage     = Text.pack $ packageName
     , fiVersion     = Text.pack $ version
     , fiSignature   = Text.pack $ signature
     , fiSubsigs     = Text.pack $ subsignatures
-    , fiType        = Text.pack $ declType d
+    , fiType        = Text.pack $ factType d
     }
   where
     signature = maybe "" Signature.pretty $ do
-      sig <- declSignature d
+      sig <- factSignature d
       return (Signature.normalize sig)
 
     subsignatures =

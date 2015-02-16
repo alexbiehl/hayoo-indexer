@@ -49,3 +49,5 @@ executable hayoo-indexer
                        -funbox-strict-fields
                        -O2
                        -threaded
+                       -rtsopts 
+                       "-with-rtsopts=-N -I0 -A32m"

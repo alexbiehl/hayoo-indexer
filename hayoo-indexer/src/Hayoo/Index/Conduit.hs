@@ -17,14 +17,14 @@ compressedArchive = unfoldC go . Tar.read . GZip.decompress
   where
     go (Tar.Next entry next) =
       case Tar.entryContent entry of
-        Tar.NormalFile content _ -> do
+        Tar.NormalFile content _ ->
           Just ((Tar.entryPath entry, content), next)
         _                        -> go next
     go Tar.Done     = Nothing
-    go (Tar.Fail e) = error $ "compressedArchive: " ++ (show e)
+    go (Tar.Fail e) = error $ "compressedArchive: " ++ show e
 
-leftLogger :: (MonadIO m) => String -> Conduit (Either String a) m a
-leftLogger prefix = awaitForever $ \e -> do
+leftLogger :: (MonadIO m, Show a) => String -> Conduit (Either a  b) m b
+leftLogger prefix = awaitForever $ \e ->
   case e of
-   Left err -> liftIO $ putStrLn (prefix ++ err)
+   Left err -> liftIO $ putStrLn (prefix ++ show err)
    Right x  -> yield x

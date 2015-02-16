@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Hayoo.Index.Cabal.PackageInfo where
 
 import           Data.Aeson (toJSON)
@@ -14,19 +15,11 @@ import           Hayoo.Index.IndexSchema
 import qualified Hunt.ClientInterface as Hunt
 import qualified Hunt.Common.DocDesc as Hunt
 
-type PackageName = Text
-type Version = Text
-
 type Error = String
 
-data PackageIdentifier = PackageIdentifier {
-    pIdName :: PackageName
-  , pIdVersion :: Version
-  }
-  deriving (Eq, Show)
-
 data PackageDescription = PackageDescription {
-    pdId           :: PackageIdentifier
+    pdName         :: Text
+  , pdVersion      :: Text
   , pdUri          :: Text
   , pdAuthor       :: Text
   , pdCategory     :: Text
@@ -52,12 +45,13 @@ toList pd = filter (not . Text.null . snd) [
   , (d'dependencies, pdDependencies pd)
   , (d'description, pdDescription pd)
   , (d'maintainer, pdMaintainer pd)
-  , (d'name, pIdName (pdId pd))
-  , (d'version, pIdVersion (pdId pd))
+  , (d'name, pdName pd)
+  , (d'version, pdVersion  pd)
+  , (d'type, "package")
   ]
 
-parseCabalFile :: String -> Either Error PackageDescription
-parseCabalFile content =
+parseCabalFile :: (String -> String -> String) ->  String -> Either Error PackageDescription
+parseCabalFile mkUri content =
   case parseDesc content of
    Cabal.ParseFailed err -> Left (show err)
    Cabal.ParseOk _ desc  -> Right desc
@@ -65,16 +59,17 @@ parseCabalFile content =
     parseDesc desc = do
       cabalGenDesc <- Cabal.parsePackageDescription desc
       let cabalDesc = Cabal.packageDescription cabalGenDesc
-      return (cabalDescToHayooDesc cabalDesc)
+      return (cabalDescToHayooDesc mkUri cabalDesc)
 
-cabalDescToHayooDesc :: Cabal.PackageDescription -> PackageDescription
-cabalDescToHayooDesc desc =
+cabalDescToHayooDesc :: (String -> String -> String) -> Cabal.PackageDescription -> PackageDescription
+cabalDescToHayooDesc mkUri desc =
   PackageDescription {
-      pdId           = PackageIdentifier pkgName version
-    , pdUri          = Text.pack $ Cabal.pkgUrl desc
+      pdName         = pkgName
+    , pdVersion      = version
+    , pdUri          = Text.pack $ mkUri (Cabal.display (Cabal.pkgName package)) (showVersion (Cabal.pkgVersion package))
     , pdAuthor       = Text.pack $ Cabal.author desc
     , pdCategory     = Text.pack $ Cabal.category desc
-    , pdDependencies = Text.empty
+    , pdDependencies = dependencies (Cabal.buildDepends desc)
     , pdHomepage     = Text.pack $ Cabal.homepage desc
     , pdMaintainer   = Text.pack $ Cabal.maintainer desc
     , pdSynopsis     = Text.pack $ Cabal.synopsis desc
@@ -84,3 +79,8 @@ cabalDescToHayooDesc desc =
     package = Cabal.package desc
     pkgName = Text.pack $ Cabal.display (Cabal.pkgName package)
     version = Text.pack $ showVersion (Cabal.pkgVersion package)
+
+dependencies :: [Cabal.Dependency] -> Text
+dependencies = Text.intercalate " " . fmap Text.pack . fmap toPkg
+  where
+    toPkg (Cabal.Dependency pkg _) = Cabal.display pkg

@@ -69,12 +69,12 @@ createHayooIndexSchema
 dropHayooIndexSchema :: Command
 dropHayooIndexSchema
     = cmdSequence $
-      map (cmdDeleteContext . fst) $
+      fmap (cmdDeleteContext . fst) $
       hayooIndexSchema
 
 hayooIndexSchema :: [(Context, ContextSchema)]
 hayooIndexSchema
-    = map ($ ds) $
+    = fmap ($ ds) $
       [ mkIC c'author       . setCxWeight 1.0
       , mkIC c'category     . setCxWeight 1.0                      . setCxNoDefault
       , mkIC c'dependencies . setCxWeight 1.0 . setCxRegEx "[^ ]*" . setCxNoDefault

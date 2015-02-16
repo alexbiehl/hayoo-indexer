@@ -1,0 +1,11 @@
+.DS_Store
+hayoo-core/.DS_Store
+hayoo-core/cabal.sandbox.config
+hayoo-core/dist/
+hayoo-core/src/Hayoo/.DS_Store
+hayoo-indexer/.gitignore
+hayoo-indexer/aeson.txt
+hayoo-indexer/cabal.sandbox.config
+hayoo-indexer/dist/
+hayoo-indexer/hoogle.tar.gz
+hayoo-indexer/index.tar.gz

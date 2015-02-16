@@ -3,32 +3,66 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Main where
 
-import Hayoo.Index.Hoogle
+import Control.Concurrent.Async
+import Data.Text (pack)
 import Hayoo.Index.Cabal
-
+import Hayoo.Index.Hoogle
 import Hayoo.Index.IndexSchema
 import Hunt.Server.Client
-import Control.Concurrent.Async
+import Options.Applicative
+
+data Options = Options {
+    hackageBase :: String
+  , hoogleArchive :: FilePath
+  , indexArchive  :: FilePath
+  , huntServer    :: String
+  }
+
+strOption' x a = strOption x <|> pure a
+
+indexerOptions =
+  Options <$> strOption (
+    long "hackage-url"
+    <> metavar "URL"
+    <> help "Hackage server address"
+    ) <*> strOption (
+    long "hoogle"
+    <> metavar "FILE"
+    <> help "Haddocks Hoogle output"
+    ) <*> strOption (
+    long "index"
+    <> metavar "FILE"
+    <> help "Hackage index.tar.gz"
+    ) <*> strOption' (
+    long "hunt-url"
+    <> metavar "URI"
+    <> help "Uri to hunt-server"
+    ) "http://localhost:3000"
 
 main :: IO ()
 main = do
-
-  sam <- newServerAndManager "http://localhost:3000"
-
-  let runHunt = withServerAndManager sam
+  options <- execParser opts
+  sam     <- newServerAndManager (pack (huntServer options))
 
   let processHoogleArchive =
-        indexHoogleArchive (mkHaddockUri "http://hackage.haskell.org") "hoogle.tar.gz"
+        indexHoogleArchive (
+          mkHaddockUri (hackageBase options)) (hoogleArchive options)
 
   let processCabalArchive =
-        indexCabalArchive (mkHackageUri "http://hackage.haskell.org") "index.tar.gz"
+        indexCabalArchive (
+          mkHackageUri (hackageBase options)) (indexArchive options)
 
-  runHunt $ do
+  withServerAndManager sam $ do
     _ :: String <- postCommand dropHayooIndexSchema
     _ :: String <- postCommand createHayooIndexSchema
     return ()
 
   _ <- concurrently
-       (runHunt processCabalArchive)
-       (runHunt processHoogleArchive)
+       (withServerAndManager sam processCabalArchive)
+       (withServerAndManager sam processHoogleArchive)
   return ()
+  where
+    opts = info (helper <*> indexerOptions)
+           (fullDesc
+            <> progDesc "Indexes hoogle.tar.gz and index.tar.gz from Hackage"
+            <> header "hayoo-indexer - a hackage indexer")

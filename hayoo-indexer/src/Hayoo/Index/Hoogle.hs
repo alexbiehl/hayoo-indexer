@@ -50,7 +50,7 @@ indexHoogleArchive mkUri fp = do
     =$= functionInfos mkUri
     =$= leftLogger "hoogle:"
     =$= makeInserts toApiDocument
-    =$= rechunkCommands 100
+    =$= rechunkCommands 50
     $$ cmdSink
 
 functionInfos :: Monad m
@@ -66,4 +66,4 @@ functionInfos mkUri = concatMapC go
         dedupe              = List.nubBy ((==) `on` fiURI) infos
         dispError err       = package ++ "-" ++ version ++ ": " ++ err
       in
-       (fmap (Left . fmap dispError) errors) ++ (fmap Right dedupe)
+       fmap (Left . fmap dispError) errors ++ fmap Right dedupe

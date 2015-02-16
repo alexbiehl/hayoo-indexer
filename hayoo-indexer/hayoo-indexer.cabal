@@ -33,6 +33,7 @@ executable hayoo-indexer
                      , hunt-client
                      , hunt-searchengine
                      , old-locale
+                     , optparse-applicative
                      , split
                      , tar
                      , text

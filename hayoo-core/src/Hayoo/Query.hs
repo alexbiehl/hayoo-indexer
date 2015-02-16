@@ -48,7 +48,7 @@ parseSignatureQuery s =
 
     subSigs = List.concatMap (
       Foldable.toList
-      . Signature.explodeNormalized
+      . Signature.explodeWithComplexity 1
       ) sig
 
     subSigQuery =

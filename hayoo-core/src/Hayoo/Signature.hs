@@ -5,8 +5,9 @@ module Hayoo.Signature(
   , pretty
   , normalize
   , explode
-  , explodeNormalized
+  , explodeWithComplexity
   , fromType
+  , complexity
   ) where
 
 import qualified Hayoo.Haskell as Haskell
@@ -14,8 +15,10 @@ import qualified Hayoo.Haskell as Haskell
 import           Control.Applicative
 import           Control.Monad.State
 import           Data.Char (ord, chr)
+import qualified Data.List as List
 import           Data.Map (Map)
 import qualified Data.Map as Map
+import qualified Data.Maybe as Maybe
 import           Data.Monoid
 import           Data.Set (Set)
 import qualified Data.Set as Set
@@ -85,6 +88,23 @@ normalize' type_ =
     goAsst (IParam ipname t)    = IParam ipname <$> go t
     goAsst (EqualP t1 t2)       = EqualP <$> go t1 <*> go t2
     goAsst (ParenA asst)        = ParenA <$> goAsst asst
+
+complexity :: Signature -> Int
+complexity = go . unSignature
+  where
+    go (TyForall binds _ t) = Maybe.maybe 0 List.length binds + go t
+    go (TyCon _)            = 1
+    go (TyApp t1 t2)        = 0 + go t1 + go t2
+    go (TyTuple _ t)        = 1 + sum (map go t)
+    go (TyList t)           = 1 + go t
+    go (TyFun t1 t2)        = 1 + go t1 + go t2
+    go (TyEquals t1 t2)     = 1 + go t1 + go t2
+    go (TyParen t)          = 0 + go t
+    go _                    = 0
+
+explodeWithComplexity :: Int -> Signature -> Set Signature
+explodeWithComplexity c  =
+  Set.filter ((c <=) . complexity) . explodeNormalized
 
 explode :: Signature -> Set Signature
 explode = Set.map Signature . explode' . unSignature
